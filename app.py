@@ -16,7 +16,6 @@ estatura = st.number_input("Estatura (cm)", min_value=130, max_value=250, value=
 nivel = st.selectbox("Nivel de actividad física", [
     "Sedentario", "Ligero", "Moderado", "Activo", "Muy activo"
 ])
-
 objetivo = st.radio("¿Cuál es tu objetivo?", ["Perder peso", "Mantener peso", "Ganar músculo"])
 
 # Factor de actividad
@@ -81,3 +80,19 @@ fig.update_layout(
 )
 
 st.plotly_chart(fig, use_container_width=True)
+
+# --- Ingreso del correo y resumen final ---
+correo = st.text_input("📧 Ingresa tu correo para el resumen:")
+
+if correo:
+    peso_final = round(peso_proyectado[-1], 2)
+    resumen = {
+        "Correo": [correo],
+        "Peso actual (lbs)": [peso],
+        "Calorías seleccionadas (kcal)": [calorias_slider],
+        "Objetivo": [objetivo],
+        "Peso proyectado en 3 meses (lbs)": [peso_final]
+    }
+    df_resumen = pd.DataFrame(resumen)
+    st.subheader("📋 Resumen final:")
+    st.dataframe(df_resumen)
