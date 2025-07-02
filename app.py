@@ -1,102 +1,89 @@
 import streamlit as st
 import matplotlib.pyplot as plt
+import numpy as np
 
+# Configuración de la página
 st.set_page_config(page_title="Calculadora de Calorías y TDEE", layout="centered")
 
-st.title("🔥 Calculadora de Calorías y TDEE")
+st.title("🔥 Calculadora de TDEE y Proyección de Peso")
 
-# Datos del usuario
-nombre = st.text_input("Nombre:")
-edad = st.number_input("Edad", min_value=10, step=1)
-sexo = st.radio("Sexo", ["Hombre", "Mujer"])
-peso_lb = st.number_input("Peso (libras)", min_value=50.0, step=0.5)
-altura_pies = st.number_input("Altura (pies)", min_value=1, step=1)
-altura_pulgadas = st.number_input("Altura (pulgadas)", min_value=0, max_value=11, step=1)
+# Entradas del usuario
+nombre = st.text_input("¿Cuál es tu nombre?")
+edad = st.number_input("Edad", min_value=10, max_value=100, value=25)
+sexo = st.radio("Sexo", ["Masculino", "Femenino"])
+altura = st.number_input("Altura en pulgadas", min_value=48.0, max_value=90.0, value=70.0)
+peso_actual = st.number_input("Peso actual en libras", min_value=80.0, max_value=600.0, value=180.0)
 nivel_actividad = st.selectbox("Nivel de actividad física", [
-    "Sedentario (poco o nada de ejercicio)",
-    "Ligero (ejercicio 1-3 días/semana)",
-    "Moderado (ejercicio 3-5 días/semana)",
-    "Activo (ejercicio 6-7 días/semana)",
-    "Muy activo (dos veces al día o trabajo físico)"
+    "Sedentario", 
+    "Ligera actividad", 
+    "Moderadamente activo", 
+    "Muy activo", 
+    "Extremadamente activo"
 ])
+goal = st.selectbox("Objetivo", ["Perder peso", "Mantener peso", "Ganar músculo"])
 
-objetivo = st.selectbox("¿Cuál es tu objetivo?", ["Perder peso", "Mantener peso", "Ganar masa muscular"])
-
+# Calcular TDEE
 if st.button("Calcular"):
 
-    # Conversión
-    peso_kg = peso_lb * 0.4536
-    altura_cm = (altura_pies * 12 + altura_pulgadas) * 2.54
-
-    # Fórmula de Harris-Benedict
-    if sexo == "Hombre":
-        tmb = 10 * peso_kg + 6.25 * altura_cm - 5 * edad + 5
+    # Calcular BMR con fórmula Mifflin-St Jeor
+    if sexo == "Masculino":
+        bmr = 66 + (6.23 * peso_actual) + (12.7 * altura) - (6.8 * edad)
     else:
-        tmb = 10 * peso_kg + 6.25 * altura_cm - 5 * edad - 161
+        bmr = 655 + (4.35 * peso_actual) + (4.7 * altura) - (4.7 * edad)
 
     # Factor de actividad
     factores = {
-        "Sedentario (poco o nada de ejercicio)": 1.2,
-        "Ligero (ejercicio 1-3 días/semana)": 1.375,
-        "Moderado (ejercicio 3-5 días/semana)": 1.55,
-        "Activo (ejercicio 6-7 días/semana)": 1.725,
-        "Muy activo (dos veces al día o trabajo físico)": 1.9
+        "Sedentario": 1.2,
+        "Ligera actividad": 1.375,
+        "Moderadamente activo": 1.55,
+        "Muy activo": 1.725,
+        "Extremadamente activo": 1.9
     }
 
-    tdee = tmb * factores[nivel_actividad]
+    tdee = bmr * factores[nivel_actividad]
 
-    st.subheader(f"Hola {nombre} 👋")
-    st.write(f"Tu TDEE estimado es: **{tdee:.0f} calorías/día**")
+    # Calorías sugeridas según objetivo
+    mantener = round(tdee)
+    perder_peso = round(tdee - 500)
+    ganar_musculo = round(tdee + 300)
 
-    # Recomendaciones
-    st.write("### 🔥 Recomendaciones calóricas:")
-    st.write(f"- Para **mantener tu peso**: {int(tdee)} kcal/día")
-    st.write(f"- Para **perder peso** (~-500 kcal): {int(tdee - 500)} kcal/día")
-    st.write(f"- Para **ganar masa muscular** (+300 kcal): {int(tdee + 300)} kcal/día")
-
-    # Proyección de peso
-    semanas = list(range(13))
-    peso_actual = peso_lb
-    proyeccion = []
-
-    if objetivo == "Perder peso":
-        tasa = -1  # 1 lb por semana
-    elif objetivo == "Ganar masa muscular":
-        tasa = 0.5  # 0.5 lb por semana
+    st.markdown(f"### 🔍 Resultados para {nombre}")
+    st.write(f"**Tu TDEE estimado es:** {tdee:.0f} kcal/día")
+    
+    if goal == "Perder peso":
+        st.info(f"Para perder peso: **{perder_peso} kcal/día** (déficit de 500)")
+    elif goal == "Ganar músculo":
+        st.info(f"Para ganar músculo: **{ganar_musculo} kcal/día** (superávit de 300)")
     else:
-        tasa = 0
+        st.info(f"Para mantener peso: **{mantener} kcal/día**")
 
-    for semana in semanas:
-        proyeccion.append(peso_actual + semana * tasa)
+    # Slider para ajustar ingesta calórica
+    calorias_slider = st.slider("¿Cuántas calorías planeas consumir por día?", 1200, 4000, mantener)
 
-    # Gráfica
+    # Cálculo del déficit o superávit
+    diferencia = calorias_slider - mantener
+    dias = np.arange(0, 91)
+    calorias_por_libra = 3500  # 1 libra = 3500 kcal aprox
+    cambio_peso = diferencia * dias / calorias_por_libra
+    peso_proyectado = peso_actual + cambio_peso
+
+    # Mostrar estimación
+    if diferencia < 0:
+        st.warning(f"Déficit de {abs(diferencia)} kcal/día. Posible pérdida de peso.")
+    elif diferencia > 0:
+        st.success(f"Superávit de {diferencia} kcal/día. Posible ganancia muscular.")
+    else:
+        st.info("Estás en equilibrio calórico. Mantendrás tu peso.")
+
+    # Crear la gráfica
     fig, ax = plt.subplots()
-    ax.plot(semanas, proyeccion, marker='o', color='green')
-    ax.set_title("📉 Proyección de Peso en 3 Meses")
-    ax.set_xlabel("Semanas")
-    ax.set_ylabel("Peso (lb)")
+    ax.plot(dias, peso_proyectado, color='blue', linewidth=2)
+    ax.set_title("📊 Proyección de peso en 3 meses")
+    ax.set_xlabel("Días")
+    ax.set_ylabel("Peso (lbs)")
     ax.grid(True)
 
-    st.pyplot(fig)
-
-#adicional.
-
-# Slider para modificar calorías
-calorias_slider = st.slider("¿Cuántas calorías planeas consumir al día?", 1200, 4000, 2000)
-
-# Recalcular proyección
-deficit = tdee - calorias_slider
-peso_array = peso_actual + (deficit * np.arange(91) / 3500)
-
-# Graficar y guardar
-fig, ax = plt.subplots()
-ax.plot(peso_array, label="Proyección de peso (lbs)", color="blue")
-ax.set_xlabel("Días")
-ax.set_ylabel("Peso (lbs)")
-ax.set_title("Proyección de peso en 3 meses")
-ax.grid(True)
-plt.tight_layout()
-plt.savefig("proyeccion.png")
-
-# Mostrar en Streamlit
-st.image("proyeccion.png", caption="Proyección de peso en 90 días")
+    # Guardar y mostrar imagen PNG
+    plt.tight_layout()
+    plt.savefig("proyeccion_peso.png")
+    st.image("proyeccion_peso.png", caption="Proyección de peso (estimado)")
