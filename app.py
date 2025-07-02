@@ -78,3 +78,50 @@ if st.button("Calcular"):
     ax.grid(True)
 
     st.pyplot(fig)
+
+#adicional.
+
+import streamlit as st
+import matplotlib.pyplot as plt
+import numpy as np
+
+# Configuración de la página
+st.set_page_config(page_title="Proyección de Peso", layout="centered")
+st.title("📉 Proyección de Peso por Déficit o Superávit Calórico")
+
+# Datos del usuario
+peso_actual = st.number_input("Peso actual (lbs):", min_value=50.0, max_value=500.0, value=180.0, step=1.0)
+tdee = st.number_input("TDEE (Calorías necesarias para mantenerte):", min_value=1000, max_value=6000, value=2500)
+
+# Calorías que planeas consumir al día
+calorias_diarias = st.slider("¿Cuántas calorías planeas comer al día?", min_value=1000, max_value=6000, value=2000, step=100)
+
+# Proyección
+dias = 90
+deficit_diario = tdee - calorias_diarias  # puede ser negativo si comes más que tu TDEE
+calorias_por_libra = 3500  # 1 lb = 3500 kcal
+cambio_peso_total = deficit_diario * dias / calorias_por_libra
+peso_estimado = peso_actual + cambio_peso_total
+
+# Generar proyección diaria
+dias_array = np.arange(dias + 1)
+peso_array = peso_actual + (deficit_diario * dias_array / calorias_por_libra)
+
+# Mostrar resultado
+st.markdown(f"""
+### 🧮 Resultado estimado:
+- Peso actual: **{peso_actual:.1f} lbs**
+- TDEE: **{tdee} kcal**
+- Calorías consumidas: **{calorias_diarias} kcal/día**
+- Cambio estimado en 90 días: **{cambio_peso_total:+.1f} lbs**
+- Peso estimado al día 90: **{peso_estimado:.1f} lbs**
+""")
+
+# Mostrar gráfica
+fig, ax = plt.subplots()
+ax.plot(dias_array, peso_array, color="blue", linewidth=2)
+ax.set_title("Proyección de Peso en 90 días")
+ax.set_xlabel("Días")
+ax.set_ylabel("Peso (lbs)")
+ax.grid(True)
+st.pyplot(fig)
